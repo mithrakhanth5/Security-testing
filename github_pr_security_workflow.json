@@ -1,0 +1,246 @@
+{
+  "name": "GitHub PR Security Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-pr-webhook",
+        "options": {}
+      },
+      "id": "github-webhook-trigger",
+      "name": "GitHub PR Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://semgrep.dev/api/v1/deployments/my-org/projects/my-repo/scans",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "commit_sha",
+              "value": "={{ $json.body.pull_request.head.sha }}"
+            },
+            {
+              "name": "branch",
+              "value": "={{ $json.body.pull_request.head.ref }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-semgrep",
+      "name": "Trigger Semgrep SAST",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        350,
+        120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "semgrep-api-credential",
+          "name": "Semgrep API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.snyk.io/rest/orgs/my-org-id/projects",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "repo_url",
+              "value": "={{ $json.body.repository.html_url }}"
+            },
+            {
+              "name": "ref",
+              "value": "={{ $json.body.pull_request.head.ref }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-snyk",
+      "name": "Trigger Snyk Dependency Scan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        350,
+        280
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "snyk-api-credential",
+          "name": "Snyk API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scan-results-callback",
+        "options": {}
+      },
+      "id": "scan-results-webhook",
+      "name": "Scan Results Callback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.body.findings.highCount }}",
+              "operation": "larger",
+              "value2": 0
+            },
+            {
+              "value1": "={{ $json.body.findings.criticalCount }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "check-severity",
+      "name": "Vulnerability Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        350,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "security-alerts",
+        "text": "=🚨 *Critical Security Findings Detected!*\n*Repository:* {{ $json.body.repository }}\n*Branch:* {{ $json.body.branch }}\n*Tool:* {{ $json.body.tool }}\n\n*Summary of Findings:*\n• Critical: {{ $json.body.findings.criticalCount }}\n• High: {{ $json.body.findings.highCount }}\n• Medium: {{ $json.body.findings.mediumCount }}\n\n⚠️ PR Check failed. Please triage findings immediately.",
+        "otherOptions": {}
+      },
+      "id": "slack-alert-findings",
+      "name": "Alert Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        600,
+        420
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "slack-credential",
+          "name": "Slack Security App"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "projectKey": "SEC",
+        "issueType": "Bug",
+        "summary": "=Security Finding: {{ $json.body.tool }} in {{ $json.body.repository }}",
+        "description": "=Vulnerability report details:\n- Tool: {{ $json.body.tool }}\n- Repository: {{ $json.body.repository }}\n- Branch: {{ $json.body.branch }}\n- Findings Details:\n  - Critical: {{ $json.body.findings.criticalCount }}\n  - High: {{ $json.body.findings.highCount }}\n  - Medium: {{ $json.body.findings.mediumCount }}\n\nLink to scan: {{ $json.body.scanUrl }}",
+        "additionalFields": {
+          "priority": "High"
+        }
+      },
+      "id": "jira-bug-creation",
+      "name": "Create Jira Bug",
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        600,
+        580
+      ],
+      "credentials": {
+        "jiraSoftwareServerApi": {
+          "id": "jira-credential",
+          "name": "Jira Cloud Integration"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GitHub PR Webhook": {
+      "main": [
+        [
+          {
+            "node": "Trigger Semgrep SAST",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Trigger Snyk Dependency Scan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan Results Callback": {
+      "main": [
+        [
+          {
+            "node": "Vulnerability Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vulnerability Found?": {
+      "main": [
+        [
+          {
+            "node": "Alert Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Jira Bug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": "2"
+}

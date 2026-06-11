@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beginner's Guide: n8n Security Automation Node</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #1a365d;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #2b6cb0;
+            margin-top: 30px;
+            border-bottom: 1px solid #edf2f7;
+            padding-bottom: 5px;
+            font-size: 22px;
+        }
+        h3 {
+            color: #2d3748;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        p {
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        .overview-box {
+            background-color: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+        .pipeline-card {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+        th, td {
+            border: 1px solid #cbd5e0;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #2b6cb0;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background-color: #e2e8f0;
+            color: #4a5568;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-trigger {
+            background-color: #feebc8;
+            color: #c05621;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #e2e8f0;
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Beginner's Guide: n8n Security Automation Node</h1>
+    <p><em>Understanding triggers, actions, and how data moves through our automated runbook.</em></p>
+
+    <div class="overview-box">
+        <h3>🌟 General Concept</h3>
+        <p>Think of this security node as an automated <strong>digital security guard</strong>. Instead of developers manually running security scans and copy-pasting alerts, this system listens for specific events (triggers) and automatically coordinates the tools to handle them.</p>
+    </div>
+
+    <h2>🚀 The 4 Security Pipelines</h2>
+
+    <div class="pipeline-card">
+        <h3>1. The Code Change Pipeline (PR Flow)</h3>
+        <p><em>Goal: Check new code changes for safety issues before they are merged into the main project.</em></p>
+        <ul>
+            <li><span class="badge badge-trigger">Trigger</span> A developer uploads code changes on GitHub and opens a <strong>Pull Request (PR)</strong>.</li>
+            <li><strong>Step 1: Webhook Node</strong> &mdash; GitHub sends a notification containing code details (branch name, commit ID) directly to n8n.</li>
+            <li><strong>Step 2: Scanners Node</strong> &mdash; n8n automatically launches two scans in parallel:
+                <ul>
+                    <li><strong>Semgrep SAST:</strong> Reads the code line-by-line looking for vulnerabilities or hardcoded secrets.</li>
+                    <li><strong>Snyk:</strong> Inspects third-party libraries we imported for known security issues.</li>
+                </ul>
+            </li>
+            <li><strong>Step 3: Verification (IF Node)</strong> &mdash; When the scan results return, n8n checks the number of findings:
+                <ul>
+                    <li><strong>If high-severity vulnerabilities are found:</strong> It alerts the team in <strong>Slack</strong> and creates a <strong>Jira Bug</strong> ticket so they can fix it immediately.</li>
+                    <li><strong>If clean:</strong> The workflow stops, and the code passes the check.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>2. The Weekly Website Scan (DAST Flow)</h3>
+        <p><em>Goal: Test the live testing website (staging environment) for runtime vulnerabilities.</em></p>
+        <ul>
+            <li><span class="badge badge-trigger">Trigger</span> A timer built into n8n goes off automatically <strong>every Monday morning at 9:00 AM</strong>.</li>
+            <li><strong>Step 1: OWASP ZAP Scanner</strong> &mdash; n8n orders the ZAP scanning tool to test our staging website. Unlike code scans, ZAP interacts with the live website, simulating a real hacker attempting to break in.</li>
+            <li><strong>Step 2: Slack Logger</strong> &mdash; n8n drops a message in the team's <strong>Slack</strong> channel to confirm the scan has successfully started.</li>
+        </ul>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>3. The Quarterly Audit Reminder</h3>
+        <p><em>Goal: Ensure we periodically review compliance and third-party testing requirements.</em></p>
+        <ul>
+            <li><span class="badge badge-trigger">Trigger</span> An automated timer that goes off <strong>once every three months</strong>.</li>
+            <li><strong>Step 1: Slack Pen Test Reminder</strong> &mdash; n8n posts a check-in alert to the security channel. It prompts the team to evaluate:
+                <ul>
+                    <li>Have we hit 500 customers?</li>
+                    <li>Are we signing a major enterprise client?</li>
+                    <li>Did we do a major code rewrite?</li>
+                </ul>
+                If any are true, the alert reminds them to schedule a formal third-party penetration test.</li>
+        </ul>
+    </div>
+
+    <div class="pipeline-card">
+        <h3>4. The Emergency Incident Response Flow</h3>
+        <p><em>Goal: Automate containment and tracking if a security breach or hack is detected.</em></p>
+        <ul>
+            <li><span class="badge badge-trigger">Trigger</span> An external monitoring tool (like a firewall or cloud guard) detects a threat and alerts the n8n **Incident Webhook**.</li>
+            <li><strong>Step 1: Create Slack Channel</strong> &mdash; n8n instantly creates a dedicated private channel (e.g. <code>#incident-2026-004</code>) so the emergency team can communicate immediately.</li>
+            <li><strong>Step 2: Post Playbook</strong> &mdash; n8n posts a checklist playbook inside that channel detailing how to stop the attack (e.g., blocking malicious IPs, changing API tokens).</li>
+            <li><strong>Step 3: Create Incident Jira</strong> &mdash; n8n creates a highest-priority <strong>Jira Task</strong> so managers can track the resolution of the incident.</li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <h2>📊 Pipeline Summary Reference</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Pipeline Flow</th>
+                <th>Trigger (What Starts It)</th>
+                <th>Actions Taken</th>
+                <th>Final Outcome</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Code Change Flow</strong></td>
+                <td>Developer opens a GitHub PR</td>
+                <td>Runs Semgrep SAST & Snyk Scan</td>
+                <td>Alerts Slack and creates a Jira Bug if findings are high-risk.</td>
+            </tr>
+            <tr>
+                <td><strong>Weekly Scan Flow</strong></td>
+                <td>Timer (Mondays at 9:00 AM)</td>
+                <td>Triggers OWASP ZAP scanner</td>
+                <td>Tests live staging site; logs start in Slack.</td>
+            </tr>
+            <tr>
+                <td><strong>Quarterly Audit</strong></td>
+                <td>Timer (Every 3 months)</td>
+                <td>Checks business compliance rules</td>
+                <td>Slack reminder to assess hiring third-party testers.</td>
+            </tr>
+            <tr>
+                <td><strong>Incident Response</strong></td>
+                <td>Firewall/threat alert</td>
+                <td>Creates Slack room, posts playbook, creates Jira ticket</td>
+                <td>Rapid setup for emergency containment and tracking.</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "vulnerable-test-app",
+  "version": "1.0.0",
+  "description": "Mock project to test security scanners",
+  "main": "index.js",
+  "dependencies": {
+    "express": "4.16.0",
+    "lodash": "4.17.11",
+    "minimist": "1.2.0",
+    "mysql": "2.18.1"
+  }
+}
